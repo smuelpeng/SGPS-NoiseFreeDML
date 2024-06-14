@@ -1,0 +1,3 @@
+[submodule "FeatureServer"]
+	path = FeatureServer
+	url = git@github.com:smuelpeng/FeatureServer.git
