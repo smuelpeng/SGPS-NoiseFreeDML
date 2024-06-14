@@ -42,6 +42,8 @@ class NoiseFreeDMLDataModuleConfig:
     NF_port: int = 5870
     batch_size: int = 64
     eval_batch_size: int = 128
+    sampler_cls: str = ""
+    num_instances: int = 4
 
 class NoiseFreeDMLDataset(BaseValDMLDataset):
     def __init__(self, cfg) -> None:
@@ -118,7 +120,7 @@ class NoiseFreeDMLDataModule(pl.LightningDataModule):
             sampler = sgps.find(self.cfg.sampler_cls)(
                 self.train_dataset,
                 self.cfg.batch_size,
-                num_instances = self.cfg.SAMPLER.NUM_INSTANCES,
+                num_instances = self.cfg.num_instances,
                 max_iter = self.cfg.max_iters
             )
         else:

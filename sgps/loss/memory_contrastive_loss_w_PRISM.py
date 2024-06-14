@@ -2,11 +2,11 @@ from __future__ import absolute_import
 
 import torch
 from torch import nn
-from core.utils.general.log_helper import log_info
-from core.utils.general.registry_factory import LOSS_REGISTRY
+# from core.utils.general.log_helper import log_info
+# from core.utils.general.registry_factory import LOSS_REGISTRY
 
 
-@LOSS_REGISTRY.register("memory_contrastive_loss_w_PRISM")
+# @LOSS_REGISTRY.register("memory_contrastive_loss_w_PRISM")
 class MemoryContrastiveLossPRISM(nn.Module):
     def __init__(self, cfg):
         super(MemoryContrastiveLossPRISM, self).__init__()

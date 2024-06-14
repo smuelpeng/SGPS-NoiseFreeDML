@@ -1,0 +1,82 @@
+name: sgps-cars-NR0.5
+tag: "v1"
+exp_root_dir: "outputs"
+seed: 0
+
+data_cls: sgps.data.sgps_dataset.NoiseFreeDMLDataModule
+data:
+  dataset: cars196-NR0.5
+  train_file: "datalist/CARS_0.5noised_train.csv"
+  test_file: "datalist/CARS_test.csv"  
+  batch_size: 64
+  eval_batch_size: 128
+  num_workers: 2
+  num_instances: 4
+  num_classes: 98
+  sample_cls: sgps.data.sampler.RandomIdentitySampler
+  NF_port: 5870
+
+
+system_cls: sgps.systems.sgps.SGPSNF
+system:
+  check_train_every_n_steps: 20
+
+  backbone_cls: sgps.model.resnet.ResNet50
+  loss:
+    clean_batch_loss: sgps.loss.contrastive_loss.ContrastiveLoss
+    clean_bank_loss: sgps.loss.memory_contrastive_loss_w_PRISM.MemoryContrastiveLossPRISM
+    noise_sgps_loss: sgps.loss.sw_loss.SwitchLoss
+    attention_module: sgps.model.attention.AttentionSoftmax
+
+    lambda_clean_query:  1.0
+    lambda_clean_all: 1.0
+    lambda_clean_batch: 1.0
+    lambda_clean_bank: 1.0
+    lambda_noise_batch: 1.0
+    lambda_noise_bank: 1.0
+
+    XBM: 
+      SIZE: 81920
+      FEATURE_DIM: 128
+    group_num: 5
+  NF_port: ${data.NF_port}
+
+  # optimizer definition
+  # you can set different learning rates separately for each group of parameters, but note that if you do this you should specify EVERY trainable parameters
+  optimizer:
+    name: AdamW
+    args:
+      lr: 4e-4
+      betas: [0.9, 0.95]
+      weight_decay: 0.0005
+
+  scheduler:
+    name: SequentialLR
+    interval: step
+    schedulers:
+      - name: LinearLR
+        interval: step
+        args:
+          start_factor: 1e-6
+          end_factor: 1.0
+          total_iters: 1000
+      - name: CosineAnnealingLR
+        interval: step
+        args:
+          T_max: 8000 
+          eta_min: 0.0
+    # milestones: [3000]
+
+trainer:
+  max_epochs: 100
+  log_every_n_steps: 1
+  num_sanity_val_steps: 1
+  check_val_every_n_epoch: 1
+  enable_progress_bar: true
+  # precision: bf16-mixed
+  gradient_clip_val: 1.0
+
+checkpoint:
+  save_last: true # whether to save at each validation time
+  save_top_k: -1
+  every_n_epochs: 10 # do not save at all for debug purpose

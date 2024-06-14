@@ -8,7 +8,6 @@ import os
 
 class ContrastiveLoss(nn.Module):
     def __init__(self, cfg, checked_outlier=None):
-        # super(ContrastiveLoss, self).__init__()
         super().__init__()
         self.margin = 0.5
         self.checked_outlier=None

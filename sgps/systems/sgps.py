@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
 
@@ -17,36 +18,68 @@ from tqdm import tqdm
 import time
 import numpy as np
 from collections import defaultdict, deque
-from FeatureServer import NFClient
+from ...FeatureServer import NFClient
 from sgps.utils.evaluations.eval import AccuracyCalculator
+
+
+@dataclass
+class XBMconfig:
+    SIZE: int = 81920
+    FEATURE_DIM: int = 128
+    FEATURE_FILE: str = ""
+    TARGET_FILE: str = ""
 
 @dataclass
 class NoiseFreeLossConfig:
-    clean_batch_loss: str = ""
-    clean_bank_loss: str = ""
-    noise_sgps_loss: str = ""        
-    
+    clean_batch_loss: str = "sgps.loss.contrastive_loss.ContrastiveLoss"
+    clean_bank_loss: str = "sgps.loss.memory_contrastive_loss_w_PRISM.MemoryContrastiveLossPRISM"
+    noise_sgps_loss: str = "sgps.loss.sw_loss.SwitchLoss"        
+    attention_module: str = "sgps.model.attention.AttentionSoftmax"
+
+    lambda_clean_query: float = 1.0
+    lambda_clean_all: float = 1.0
+
+    lambda_clean_batch: float = 1.0
+    lambda_clean_bank: float = 1.0
+    lambda_noise_batch: float = 1.0
+    lambda_noise_bank: float = 1.0
+
+    XBM: dict = XBMconfig()
+    group_num = 5
+
+def create_model_res50(num_classes=1000):
+    from ..model.resnet import resnet50
+    import torchvision.models as models
+    pretrain_model = models.resnet50(pretrained=True)
+    pretrain_model.fc = nn.Linear(2048, num_classes)    
+    model = resnet50(num_classes=num_classes)
+    params  = pretrain_model.named_parameters()
+    params1 = model.named_parameters() 
+    dict_params1 = dict(params1)
+    for name1, param in params:
+        if name1 in dict_params1:
+            dict_params1[name1].data.copy_(param.data)    
+    return model
 
 class SGPSNF(BaseSystem):
     @dataclass
     class Config(BaseSystem.Config):
         backbone_cls: str = ""
         backbone: dict = field(default_factory=dict)
-        head_cls: str = ""
-        head: dict = field(default_factory=dict)
-        port: int = 5870
         loss_cls: str = "NoiseFreeLoss"
         loss:dict = NoiseFreeLossConfig()
-        XBM:dict = field(default_factory=dict)
+        NF_port: int = 5870
 
     cfg: Config
 
     def configure(self):
         super.configure()
         self.criterion = NoiseFreeLoss(self.cfg)
-        self.backbone = sgps.find(self.cfg.backbone_cls)(self.cfg.backbone)
+        # self.backbone = sgps.find(self.cfg.backbone_cls)(self.cfg.backbone)
+        if self.cfg.backbone_cls.endswith('Resnet50'):
+            self.backbone = create_model_res50(num_classes=self.cfg.loss.num_classes)
 
-        self.NF_client = NFClient(0, self.cfg.port)
+        self.NF_client = NFClient(0, self.cfg.NF_port)
         self.validation_step_outputs = []
         self.validation_step_labels = []
 

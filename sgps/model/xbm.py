@@ -3,7 +3,7 @@ import torch
 class XBM:
     def __init__(self, cfg):
         self.K = cfg.XBM.SIZE
-        self.feats = torch.zeros(self.K, cfg.MODEL.HEAD.DIM).cuda()
+        self.feats = torch.zeros(self.K, cfg.XBM.FEATURE_DIM).cuda()
         self.targets = torch.zeros(self.K, dtype=torch.long).cuda()
         self.indices = torch.zeros(self.K, dtype=torch.long).cuda()
         self.feats.requires_grad=False
