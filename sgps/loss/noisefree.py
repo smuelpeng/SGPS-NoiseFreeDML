@@ -9,6 +9,9 @@ from torch.nn.parameter import Parameter
 from dataclasses import dataclass, field
 import math
 
+
+import sgps
+from ..utils.config import parse_structured
 import torch
 from torch import nn
 from sgps.model.xbm import XBM
@@ -16,40 +19,18 @@ import numpy as np
 
 eps = 1e-5
 class NoiseFreeLoss(nn.Module):
-    @dataclass
-    class NoiseFreeLossConfig:
-        clean_batch_loss: str = ""
-        clean_bank_loss: str = ""
-        noise_sgps_loss: str = ""        
-
     def __init__(self, cfg=None):
-
         super(NoiseFreeLoss, self).__init__()
         self.cfg = cfg
-        # self.clean_batch_loss = LOSS_REGISTRY[cfg.NF.CLEAN_BATCH_LOSS](cfg)
-        # self.clean_bank_loss = LOSS_REGISTRY[cfg.NF.CLEAN_BANK_LOSS](cfg)
-
-        # self.noise_spp_loss = LOSS_REGISTRY[cfg.NF.NOISE_SPP_LOSS](cfg)
-        # self.noise_reg_loss = LOSS_REGISTRY[cfg.NF.NOISE_REG_LOSS](cfg)
-
-        # self.attention_module = ATTENTION_REGISTRY[self.cfg.MODEL.ATTENTION_MODULE](
-        #     self.cfg)
+        self.clean_batch_loss = sgps.find(self.cfg.clean_batch_loss)(cfg)
+        self.clean_bank_loss = sgps.find(self.cfg.clean_bank_loss)(cfg)
+        self.noise_spp_loss = sgps.find(self.cfg.noise_sgps_loss)(cfg)
 
         self.xbm = XBM(cfg)
         self.xbm_all = XBM(cfg)
 
-        self.W = torch.nn.Parameter(
-            torch.Tensor(cfg.MODEL.HEAD.DIM,
-                         cfg.num_classes)
-        )
-        self.reset_parameters()
         self.is_full = False
-        # cls hyper param
-        self.la = 20
-        self.margin = self.cfg.NF.CLS_MARGIN
-        self.batch_size = self.cfg.DATA.TRAIN_BATCHSIZE
-        self.feature_dim = self.cfg.MODEL.HEAD.DIM
-
+        
         self.selected_feats = None
         self.selected_tar = None
         self.selected_indices = None
@@ -243,7 +224,7 @@ class NoiseFreeLoss(nn.Module):
                                            selected_feats_query,
                                            selected_tar_query)
 
-        log_info["batch_loss"] = batch_loss.item()
+        # log_info["batch_loss"] = batch_loss.item()
         loss_pr_all = cfg.XBM.BASE_WEIGHT * batch_loss + cfg.XBM.WEIGHT * xbm_loss
         
         loss_pr_query = cfg.XBM.BASE_WEIGHT * batch_loss_query + cfg.XBM.WEIGHT * xbm_loss_query
@@ -256,18 +237,6 @@ class NoiseFreeLoss(nn.Module):
         # self.selected_feats_all = feat_q.detach()
         # self.selected_tar_all = main_targets.detach()
         # self.selected_indices_all = indices.reshape(-1).detach()
-
-        # Reg Loss
-        # clean sample use class loss
-        ew = self.W / torch.norm(self.W, 2, 1, keepdim=True)
-        logits_clean = torch.mm(selected_feats_query, ew)
-        loss_cls = F.cross_entropy(
-            self.la * (logits_clean - self.margin),
-            selected_tar_query,
-        )
-
-        if torch.isnan(loss_cls.detach()):
-            loss_cls = 0
 
         # switch loss
         keep_bool = p_in.reshape(self.batch_size, group_size)[:, 0]
@@ -286,15 +255,12 @@ class NoiseFreeLoss(nn.Module):
                                                         pos_indices,
                                                         xbm_indices
                                                 )
-
         loss_spp = self.noise_spp_loss(feat_query,
                                        feat_sub,
                                        attention_mask,
                                        maks_neg_switch,
                                        keep_bool
                                        )
-
-
         loss_spp_bank = self.noise_spp_loss(feat_query,
                                         feat_sub,
                                        attention_mask,
@@ -303,55 +269,26 @@ class NoiseFreeLoss(nn.Module):
                                        xbm_feats = xbm_feats,
                                        )
 
-        # if self.cfg.MODEL.ATTENTION_MODULE in ['trans_proto','trans_proto2', 'trans_proto3', 'trans_proto4','trans_proto5','trans_proto6', 'trans_proto7','trans_proto8'] and len(xbm_feats) > 0:
-        if self.cfg.MODEL.ATTENTION_MODULE.startswith('trans_proto') and len(xbm_feats) > 0:
-            attention_mask = attention_mask.squeeze(1)
-            attention_mask = F.normalize(attention_mask)
-            loss_trans = self.clean_trans_loss(attention_mask, query_label_target, xbm_feats, xbm_targets, keep_bool)
-        else:
-            loss_trans = 0
-        # swith loss xbm 
-        # loss_spp_xbm = self.noise_spp_loss(feat_query,
-        #                                xbm_feats,
-        #                                attention_mask,
-        #                                maks_ne g_switch,
-        #                                keep_bool
-        #                                )
-        # noise sample use KL Reg Loss
-        if sum(~keep_bool) > 0:
-            W_detach = ew.detach()
-            feat_query_noise = feat_query[~keep_bool]
-            feat_sub_noise = feat_sub[~keep_bool].squeeze(
-                0).reshape(-1, self.feature_dim)
-
-            logits_query = torch.mm(feat_query_noise, W_detach)
-            logits_sub = torch.mm(feat_sub_noise, W_detach)
-            loss_reg = self.noise_reg_loss(
-                logits_query, logits_sub
-            )
-        else:
-            loss_reg = torch.Tensor([0]).cuda()
-
         if math.isnan(loss_spp) or math.isnan(loss_spp_bank):
             loss_spp = 0
             loss_spp_bank = 0
 
-        loss_all = loss_pr * self.cfg.NF.PR_W + loss_cls * self.cfg.NF.CLS_W  + \
-                    loss_spp * self.cfg.NF.SPP_W + loss_trans * self.cfg.NF.TRANS_W \
+        loss_all = loss_pr * self.cfg.NF.PR_W  * self.cfg.NF.CLS_W  + \
+                    loss_spp * self.cfg.NF.SPP_W  * self.cfg.NF.TRANS_W \
                     + loss_spp_bank * self.cfg.NF.SPP_BANK_W
-        #+ loss_reg * self.cfg.NF.REG_W
-        if iteration % 20 == 0:
-            logger.info(
-                f'iter: {iteration} loss_all: {loss_all.item(): .4f}, batch_loss: {batch_loss}, xbm_loss: {xbm_loss}, loss_pr: {loss_pr: .4f}, \
-                    loss_cls: {loss_cls: .4f}, loss_spp: {loss_spp: .4f}, loss_spp_bank: {loss_spp_bank: .4f}, \
-                    loss_trans: {loss_trans: .4f}')
-                    # loss_reg: {loss_reg.item():.4f}')
+        # #+ loss_reg * self.cfg.NF.REG_W
+        # if iteration % 20 == 0:
+        #     logger.info(
+        #         f'iter: {iteration} loss_all: {loss_all.item(): .4f}, batch_loss: {batch_loss}, xbm_loss: {xbm_loss}, loss_pr: {loss_pr: .4f}, \
+        #             loss_cls: {loss_cls: .4f}, loss_spp: {loss_spp: .4f}, loss_spp_bank: {loss_spp_bank: .4f}, \
+        #             loss_trans: {loss_trans: .4f}')
+        #             # loss_reg: {loss_reg.item():.4f}')
 
-        if math.isnan(loss_all):
-            print(
-                f'iter: {iteration} loss_pr: {loss_pr}, loss_cls: {loss_cls}, loss_spp: {loss_spp} loss_reg: {loss_reg}')
-            # logger.info(
-            #     )
+        # if math.isnan(loss_all):
+        #     print(
+        #         f'iter: {iteration} loss_pr: {loss_pr}, loss_cls: {loss_cls}, loss_spp: {loss_spp} loss_reg: {loss_reg}')
+        #     # logger.info(
+        #     #     )
         return loss_all
 
     def Param_groups(self, lr=None):
