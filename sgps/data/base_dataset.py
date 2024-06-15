@@ -43,6 +43,7 @@ class BaseDataSet(Dataset):
     def __init__(self,cfg, mode='train'):
         self.cfg = cfg        
         self.mode = "RGB"
+        self.root = cfg.root
         is_train = mode == 'train'
         if is_train:
             self.img_source = cfg.train_file

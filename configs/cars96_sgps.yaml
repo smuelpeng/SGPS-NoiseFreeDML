@@ -7,14 +7,24 @@ data_cls: sgps.data.sgps_dataset.NoiseFreeDMLDataModule
 data:
   dataset: cars196-NR0.5
   train_file: "datalist/CARS_0.5noised_train.csv"
-  test_file: "datalist/CARS_test.csv"  
+  test_file: "datalist/CARS_test.csv"
   batch_size: 64
   eval_batch_size: 128
   num_workers: 2
   num_instances: 4
   num_classes: 98
-  sample_cls: sgps.data.sampler.RandomIdentitySampler
+  sampler_cls: sgps.data.sampler.RandomIdentitySampler
   NF_port: 5870
+  INPUT:
+    MODE: RGB
+    PIXEL_MEAN: [0.485, 0.456, 0.406]
+    PIXEL_STD: [0.229, 0.224, 0.225]
+    FLIP_PROB: 0.5
+    ORIGIN_SIZE: [256, 256]
+    CROP_SCALE: [0.2, 1]
+    CROP_SIZE: [224, 224]
+
+
 
 
 system_cls: sgps.systems.sgps.SGPSNF
@@ -22,29 +32,46 @@ system:
   check_train_every_n_steps: 20
 
   backbone_cls: sgps.model.resnet.ResNet50
+  head: 
+    dim: 128
   loss:
     clean_batch_loss: sgps.loss.contrastive_loss.ContrastiveLoss
     clean_bank_loss: sgps.loss.memory_contrastive_loss_w_PRISM.MemoryContrastiveLossPRISM
     noise_sgps_loss: sgps.loss.sw_loss.SwitchLoss
     attention_module: sgps.model.attention.AttentionSoftmax
 
-    lambda_clean_query:  1.0
+    lambda_clean_query: 1.0
     lambda_clean_all: 1.0
     lambda_clean_batch: 1.0
     lambda_clean_bank: 1.0
     lambda_noise_batch: 1.0
     lambda_noise_bank: 1.0
-
-    XBM: 
-      SIZE: 81920
-      FEATURE_DIM: 128
     group_num: 5
+    num_classes: ${data.num_classes}
+    feature_dim: ${system.head.dim}
+    NOISE:
+      NOISE_RATE: 0.5
+      WINDOW_SIZE: 30
+      WARM_UP: 0
+    XBM:
+      SIZE: 81920
+      FEATURE_DIM: ${system.head.dim}
+    NF:
+      SW_MARGIN: 0.1
+      SW_SCALE: 50.0
+      N_SUPPORT: 4
+      ATTEN_T: 1.0
+
   NF_port: ${data.NF_port}
 
   # optimizer definition
   # you can set different learning rates separately for each group of parameters, but note that if you do this you should specify EVERY trainable parameters
   optimizer:
     name: AdamW
+    params: 
+      clip:
+        lr: 1e-6
+        weight_decay: 0.2
     args:
       lr: 4e-4
       betas: [0.9, 0.95]
@@ -63,9 +90,9 @@ system:
       - name: CosineAnnealingLR
         interval: step
         args:
-          T_max: 8000 
+          T_max: 8000
           eta_min: 0.0
-    # milestones: [3000]
+    milestones: [3000]
 
 trainer:
   max_epochs: 100

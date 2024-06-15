@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 import pytorch_lightning as pl
 import torch.nn.functional as F
 
-import tpa
+import sgps
 from .utils import parse_optimizer, parse_scheduler
 from ..utils.base import (
     Updateable,
@@ -16,14 +16,15 @@ from ..utils.misc import C, cleanup, get_device, load_module_weights
 from ..utils.saving import SaverMixin
 from ..utils.typing import *
 
-# @dataclass
-# class BaseLossConfig:
-#     pass
+@dataclass
+class BaseLossConfig:
+    pass
 
 
 class BaseSystem(pl.LightningModule, Updateable, SaverMixin):
     @dataclass
     class Config:
+        loss: BaseLossConfig = field(default_factory=BaseLossConfig)
         optimizer: dict = field(default_factory=dict)
         scheduler: Optional[dict] = None
         weights: Optional[str] = None
@@ -33,7 +34,6 @@ class BaseSystem(pl.LightningModule, Updateable, SaverMixin):
         check_val_limit_rank: int = 8
         cleanup_after_validation_step: bool = False
         cleanup_after_test_step: bool = False
-
 
     cfg: Config
 
@@ -122,9 +122,9 @@ class BaseSystem(pl.LightningModule, Updateable, SaverMixin):
 
     def on_fit_start(self) -> None:
         if self._save_dir is not None:
-            tpa.info(f"Validation results will be saved to {self._save_dir}")
+            sgps.info(f"Validation results will be saved to {self._save_dir}")
         else:
-            tpa.warn(
+            sgps.warn(
                 f"Saving directory not set for the system, visualization results will not be saved"
             )
 
@@ -156,7 +156,7 @@ class BaseSystem(pl.LightningModule, Updateable, SaverMixin):
 
     def on_test_end(self) -> None:
         if self._save_dir is not None:
-            tpa.info(f"Test results saved to {self._save_dir}")
+            sgps.info(f"Test results saved to {self._save_dir}")
 
     def on_predict_start(self) -> None:
         pass
@@ -250,6 +250,6 @@ class BaseSystem(pl.LightningModule, Updateable, SaverMixin):
         print(norms)
         for name, p in self.named_parameters():
             if p.grad is None:
-                tpa.info(f"{name} does not receive gradients!")
+                sgps.info(f"{name} does not receive gradients!")
         """
         pass

@@ -12,7 +12,7 @@ class ContrastiveLoss(nn.Module):
         self.margin = 0.5
         self.checked_outlier=None
         self.iteration=0
-        self.name=cfg.NAME
+        # self.name=cfg.NAME
 
     def forward(self, inputs_col, targets_col, inputs_row, target_row,is_noise=None):
 

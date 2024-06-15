@@ -37,23 +37,31 @@ from .base_dataset import BaseDataSet as BaseValDMLDataset
 @dataclass
 class NoiseFreeDMLDataModuleConfig:
     dataset: str = ""
+    root: str = ""
     train_file: str = ""
     test_file: str = ""
-    NF_port: int = 5870
     batch_size: int = 64
     eval_batch_size: int = 128
-    sampler_cls: str = ""
+    num_workers: int = 4
     num_instances: int = 4
+    num_classes: int = 1000
+    sampler_cls: str = ""
+    NF_port: int = 5870
+    INPUT: dict = field(default_factory=dict)
+    max_iters: int = 8000
+    
+
 
 class NoiseFreeDMLDataset(BaseValDMLDataset):
     def __init__(self, cfg) -> None:
-        super().__init__()
+        super().__init__(cfg, mode="train")
         self.transforms = build_transforms(cfg, is_train=True)
+        self.feat_client = None
     
     def init_client(self):
         if self.feat_client is None:
             self.mid = random.randint(1, 1000)
-            self.feat_client = NFClient(self.mid, self.port)
+            self.feat_client = NFClient(self.mid, self.cfg.NF_port)
         else:
             return
 
@@ -108,7 +116,7 @@ class NoiseFreeDMLDataModule(pl.LightningDataModule):
     def setup(self, stage: str) -> None:
         # return super().setup(stage)
         if stage in [None, "fit"]:
-            self.train_dataset = NoiseFreeDMLDataset(self.cfg, "train")
+            self.train_dataset = NoiseFreeDMLDataset(self.cfg)
         if stage in [None, "fit", "validate"]:
             self.val_dataset = BaseValDMLDataset(self.cfg, "val")
 
@@ -121,7 +129,7 @@ class NoiseFreeDMLDataModule(pl.LightningDataModule):
                 self.train_dataset,
                 self.cfg.batch_size,
                 num_instances = self.cfg.num_instances,
-                max_iter = self.cfg.max_iters
+                max_iters = self.cfg.max_iters
             )
         else:
             sampler = None

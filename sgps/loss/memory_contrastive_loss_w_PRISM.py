@@ -6,14 +6,13 @@ from torch import nn
 # from core.utils.general.registry_factory import LOSS_REGISTRY
 
 
-# @LOSS_REGISTRY.register("memory_contrastive_loss_w_PRISM")
 class MemoryContrastiveLossPRISM(nn.Module):
     def __init__(self, cfg):
         super(MemoryContrastiveLossPRISM, self).__init__()
         self.margin = 0.5
         self.noise_rate=cfg.NOISE.NOISE_RATE
         num_classes=cfg.num_classes
-        emd_size=cfg.MODEL.HEAD.DIM
+        emd_size=cfg.feature_dim
         self.center=torch.zeros(size=[num_classes,emd_size]).cuda()
         self.filled_center=set()
         self.last_target_col=None

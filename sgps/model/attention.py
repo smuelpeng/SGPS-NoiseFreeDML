@@ -7,8 +7,8 @@ class AttentionSoftmax(nn.Module):
     def __init__(self, cfg):
         super(AttentionSoftmax, self).__init__()
         self.n_support = cfg.NF.N_SUPPORT
-        self.hidden_dim = cfg.MODEL.HEAD.DIM
-        self.T = cfg.RSPP.ATTEN_T
+        self.hidden_dim = cfg.feature_dim
+        self.T = cfg.NF.ATTEN_T
 
     def forward(self, feat_sub):
         # feat_sub bz x n_support x dim
@@ -21,8 +21,8 @@ class AttentionMax(nn.Module):
     def __init__(self, cfg):
         super(AttentionMax, self).__init__()
         self.n_support = cfg.NF.N_SUPPORT
-        self.hidden_dim = cfg.MODEL.HEAD.DIM
-        self.T = cfg.RSPP.ATTEN_T
+        self.hidden_dim = cfg.feature_dim
+        self.T = cfg.NF.ATTEN_T
 
     def forward(self, feat_query, feat_sub):
         # feat_sub bz x n_support x dim
@@ -49,8 +49,8 @@ class AttentionMean(nn.Module):
     def __init__(self, cfg):
         super().__init__()
         self.n_support = cfg.NF.N_SUPPORT
-        self.hidden_dim = cfg.MODEL.HEAD.DIM
-        self.T = cfg.RSPP.ATTEN_T
+        self.hidden_dim = cfg.feature_dim
+        self.T = cfg.NF.ATTEN_T
 
     def forward(self, feat_sub):
         bz = feat_sub.shape[0]

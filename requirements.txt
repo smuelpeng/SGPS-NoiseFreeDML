@@ -1,0 +1,17 @@
+numpy
+einops
+lightning
+OmegaConf
+jaxtyping
+typeguard
+gradio
+Pillow
+matplotlib
+imageio
+einops
+bitsandbytes
+wandb
+tqdm
+opencv
+faiss-gpu
+tensorboard

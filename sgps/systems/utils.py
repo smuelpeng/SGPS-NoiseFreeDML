@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.optim import lr_scheduler
 
-import tpa
+import sgps
 
 
 def get_scheduler(name):
@@ -33,7 +33,7 @@ def parse_optimizer(config, model):
     #         {"params": get_parameters(model, name), "name": name, **args}
     #         for name, args in config.params.items()
     #     ]
-    #     tpa.debug(f"Specify optimizer params: {config.params}")
+    #     sgps.debug(f"Specify optimizer params: {config.params}")
     # else:
     #     params = model.parameters()
     params_optimizer = list(model.named_parameters())

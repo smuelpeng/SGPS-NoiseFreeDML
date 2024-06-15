@@ -9,7 +9,7 @@ def get_relevance_mask(shape, gt_labels, embeddings_come_from_same_source=False,
     # This assumes that k was set to at least the max number of relevant items
     if label_counts is None:
         label_counts = {k: v for k, v in zip(*np.unique(gt_labels, return_counts=True))}
-    relevance_mask = np.zeros(shape=shape, dtype=np.int)
+    relevance_mask = np.zeros(shape=shape, dtype=np.int64)
     for k, v in label_counts.items():
         matching_rows = np.where(gt_labels == k)[0]
         max_column = v - 1 if embeddings_come_from_same_source else v

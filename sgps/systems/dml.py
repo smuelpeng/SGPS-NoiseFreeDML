@@ -27,35 +27,6 @@ class XBMconfig:
     FEATURE_FILE: str = ""
     TARGET_FILE: str = ""
 
-@dataclass
-class NosieConfig:
-    NOISE_RATE: float = 0.5
-    WINDOW_SIZE: int = 30
-    WARM_UP: int = 0
-    CHECK_NOISE: bool = False
-
-@dataclass
-class NoiseFreeLossConfig:
-    clean_batch_loss: str = "sgps.loss.contrastive_loss.ContrastiveLoss"
-    clean_bank_loss: str = "sgps.loss.memory_contrastive_loss_w_PRISM.MemoryContrastiveLossPRISM"
-    noise_sgps_loss: str = "sgps.loss.sw_loss.SwitchLoss"        
-    attention_module: str = "sgps.model.attention.AttentionSoftmax"
-
-    lambda_clean_query: float = 1.0
-    lambda_clean_all: float = 1.0
-
-    lambda_clean_batch: float = 1.0
-    lambda_clean_bank: float = 1.0
-    lambda_noise_batch: float = 1.0
-    lambda_noise_bank: float = 1.0
-
-    XBM: XBMconfig = field(default_factory=XBMconfig)
-    NOISE: NosieConfig = field(default_factory=NosieConfig)
-    NF: dict = field(default_factory=dict)
-    group_num: int = 5
-    num_classes: int = 1000
-    feature_dim: int = 128
-
 def create_model_res50(num_classes=1000):
     from sgps.model.resnet import resnet50
 
@@ -71,22 +42,23 @@ def create_model_res50(num_classes=1000):
             dict_params1[name1].data.copy_(param.data)    
     return model
 
-class SGPSNF(BaseSystem):
+class DML(BaseSystem):
     @dataclass
     class Config(BaseSystem.Config):
         backbone_cls: str = ""
         backbone: dict = field(default_factory=dict)
         head: dict = field(default_factory=dict)
-        loss_cls: str = "NoiseFreeLoss"
-        loss:NoiseFreeLossConfig = field(default_factory=NoiseFreeLossConfig)
+        loss_dml_cls: str = "NoiseFreeLoss"
+        loss_dml:dict = field(default_factory=dict)
         NF_port: int = 5870
 
     cfg: Config
 
     def configure(self):
         super().configure()
-        self.criterion = NoiseFreeLoss(self.cfg.loss)
+        # self.criterion = NoiseFreeLoss(self.cfg.loss)
         # self.backbone = sgps.find(self.cfg.backbone_cls)(self.cfg.backbone)
+        self.criterion = sgps.find(self.cfg.loss_dml_cls)(self.cfg.loss_dml)
         if self.cfg.backbone_cls.endswith('ResNet50'):
             self.backbone = create_model_res50(num_classes=self.cfg.loss.num_classes)
         else:
@@ -105,11 +77,12 @@ class SGPSNF(BaseSystem):
     def training_step(self, batch, batch_idx):
         imgs, targets, indices, positive_indices = batch        
         x_feat, logits = self(imgs)
-        input = {'feat_q': x_feat,
-                 'targets': targets,
-                 'indices': indices,
-                 'pos_indices': positive_indices
-                 }
+        # input = {'feat_q': x_feat,
+        #          'targets': targets,
+        #          'indices': indices,
+        #          'pos_indices': positive_indices
+        #          }
+        
         loss = self.criterion(input)
         self.NF_client.update_feature(
             mid='0',
