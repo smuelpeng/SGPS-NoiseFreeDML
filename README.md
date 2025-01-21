@@ -10,7 +10,7 @@
 </div>
 
 ---
-Official implementation of IEEE Transactions on Image Processing paper **[Enhancing Sample Utilization in Noise-Robust Deep Metric Learning With Subgroup-Based Positive-Pair Selection](https://arxiv.org/abs/2312.09147)**.
+Official implementation of IEEE Transactions on Image Processing paper **[Enhancing Sample Utilization in Noise-Robust Deep Metric Learning With Subgroup-Based Positive-Pair Selection](https://ieeexplore.ieee.org/abstract/document/10729738)**.
 
 
 ## ⭐️ Key Features
@@ -30,7 +30,8 @@ CUDA_VISIBLE_DEVICES=0 python tools/train_net.py --cfg configs/sample_config.yam
 
 ## Acknowledgements
 - We would like to thank [@Jiaheng Liu](https://liujiaheng.github.io/) for helpful discussion.
-- Our PCS module is modified from [PRISM](https://github.com/alibaba-edu/Ranking-based-Instance-Selection) and [HFSoftmax](https://github.com/yl-1993/hfsoftmax)
+- Our PCS module is modified from [PRISM](https://github.com/alibaba-edu/Ranking-based-Instance-Selection) 
+- FeatureServer is modified from [HFSoftmax](https://github.com/yl-1993/hfsoftmax)
 
 ## Citation
 
