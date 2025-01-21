@@ -11,7 +11,7 @@
 
 ---
 Official implementation of IEEE Transactions on Image Processing paper **[Enhancing Sample Utilization in Noise-Robust Deep Metric Learning With Subgroup-Based Positive-Pair Selection](https://ieeexplore.ieee.org/abstract/document/10729738)**.
-
+This is the initial version which contains the core code. Other details are still under development, stay tuned.
 
 ## ⭐️ Key Features
 - An asynchronous server that stores all sample features, enabling it to continuously select positive training samples for each training session in real-time.
