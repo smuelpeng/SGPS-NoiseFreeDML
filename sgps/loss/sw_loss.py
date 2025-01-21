@@ -10,7 +10,7 @@ class SwitchLoss(nn.Module):
         # self.scale = cfg.RSPP.SCALE
         self.scale = cfg.NF.SW_SCALE
         self.margin = cfg.NF.SW_MARGIN
-        self.feature_dim = cfg.feature_dim
+        self.feature_dim = cfg.MODEL.HEAD.DIM
         self.cfg = cfg
 
     def forward(self,
@@ -29,13 +29,13 @@ class SwitchLoss(nn.Module):
         attention_mask
         """
         # if len(attention_mask.shape) == 3:
-        # if self.cfg.MODEL.ATTENTION_MODULE in ['trans_proto', ]:
-        #     attention_mask = attention_mask.squeeze(1)
-        #     pos_scores = F.cosine_similarity(feat_q, attention_mask)  # N
-        # else:
-        feat_sub_proto = torch.sum(
-            feat_sub * attention_mask, dim=1)  # [N,d]
-        pos_scores = F.cosine_similarity(feat_q, feat_sub_proto)  # N
+        if self.cfg.MODEL.ATTENTION_MODULE in ['trans_proto', ]:
+            attention_mask = attention_mask.squeeze(1)
+            pos_scores = F.cosine_similarity(feat_q, attention_mask)  # N
+        else:
+            feat_sub_proto = torch.sum(
+                feat_sub * attention_mask, dim=1)  # [N,d]
+            pos_scores = F.cosine_similarity(feat_q, feat_sub_proto)  # N
 
         pos_scores = pos_scores - self.margin
         if xbm_feats is not None:

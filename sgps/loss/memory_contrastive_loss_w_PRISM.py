@@ -1,3 +1,8 @@
+'''PRISM/
+code from:
+https://github.com/alibaba-edu/Ranking-based-Instance-Selection/blob/main/ret_benchmark/losses/memory_contrastive_loss_w_PRISM.py
+'''
+
 from __future__ import absolute_import
 
 import torch

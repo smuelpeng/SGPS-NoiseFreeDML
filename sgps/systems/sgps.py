@@ -56,21 +56,6 @@ class NoiseFreeLossConfig:
     num_classes: int = 1000
     feature_dim: int = 128
 
-def create_model_res50(num_classes=1000):
-    from sgps.model.resnet import resnet50
-
-    import torchvision.models as models
-    pretrain_model = models.resnet50(pretrained=True)
-    pretrain_model.fc = nn.Linear(2048, num_classes)    
-    model = resnet50(num_classes=num_classes)
-    params  = pretrain_model.named_parameters()
-    params1 = model.named_parameters() 
-    dict_params1 = dict(params1)
-    for name1, param in params:
-        if name1 in dict_params1:
-            dict_params1[name1].data.copy_(param.data)    
-    return model
-
 class SGPSNF(BaseSystem):
     @dataclass
     class Config(BaseSystem.Config):
@@ -86,19 +71,12 @@ class SGPSNF(BaseSystem):
     def configure(self):
         super().configure()
         self.criterion = NoiseFreeLoss(self.cfg.loss)
-        # self.backbone = sgps.find(self.cfg.backbone_cls)(self.cfg.backbone)
-        if self.cfg.backbone_cls.endswith('ResNet50'):
-            self.backbone = create_model_res50(num_classes=self.cfg.loss.num_classes)
-        else:
-            print(f"Backbone {self.cfg.backbone_cls} not supported")
-            raise NotImplementedError
-
+        self.backbone = sgps.find(self.cfg.backbone_cls)(self.cfg.backbone)
         self.NF_client = NFClient(0, self.cfg.NF_port)
         self.validation_step_outputs = []
         self.validation_step_labels = []
 
-    def forward(self, imgs):
-        # imgs, labels, indices, pos_indices = batch
+    def forward(self, imgs):     
         x_feat, logits = self.backbone(imgs)
         return x_feat, logits
 

@@ -57,13 +57,8 @@ class DML(BaseSystem):
     def configure(self):
         super().configure()
         # self.criterion = NoiseFreeLoss(self.cfg.loss)
-        # self.backbone = sgps.find(self.cfg.backbone_cls)(self.cfg.backbone)
+        self.backbone = sgps.find(self.cfg.backbone_cls)(self.cfg.backbone)
         self.criterion = sgps.find(self.cfg.loss_dml_cls)(self.cfg.loss_dml)
-        if self.cfg.backbone_cls.endswith('ResNet50'):
-            self.backbone = create_model_res50(num_classes=self.cfg.loss.num_classes)
-        else:
-            print(f"Backbone {self.cfg.backbone_cls} not supported")
-            raise NotImplementedError
 
         self.NF_client = NFClient(0, self.cfg.NF_port)
         self.validation_step_outputs = []
@@ -77,11 +72,11 @@ class DML(BaseSystem):
     def training_step(self, batch, batch_idx):
         imgs, targets, indices, positive_indices = batch        
         x_feat, logits = self(imgs)
-        # input = {'feat_q': x_feat,
-        #          'targets': targets,
-        #          'indices': indices,
-        #          'pos_indices': positive_indices
-        #          }
+        input = {'feat_q': x_feat,
+                 'targets': targets,
+                 'indices': indices,
+                 'pos_indices': positive_indices
+                 }
         
         loss = self.criterion(input)
         self.NF_client.update_feature(
@@ -93,7 +88,6 @@ class DML(BaseSystem):
 
     def validation_step(self, batch, batch_idx):
         imgs, targets, indices = batch
-        # outputs = self(imgs)
         x_feat, logits = self.backbone(imgs)
         self.validation_step_outputs.append(x_feat)
         self.validation_step_labels.append(targets)
