@@ -21,6 +21,7 @@ Official implementation of IEEE Transactions on Image Processing paper **[Enhanc
 Please refer to **[PRISM](https://github.com/alibaba-edu/Ranking-based-Instance-Selection)** to download the CARS_98N dataset.
 For other datasets, we highly recommend downloading them from 
 **[OpenDataLab](https://opendatalab.com/)**.
+You can acquire data list from [Google Drive](https://drive.google.com/file/d/11ltsT_qVFnV0UUO3682U7EVCbzLLRu61/view?usp=sharing).
 
 ### Training
 
