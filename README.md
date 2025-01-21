@@ -26,7 +26,7 @@ You can acquire data list from [Google Drive](https://drive.google.com/file/d/11
 ### Training
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python tools/train_net.py --cfg configs/sample_config.yaml 
+CUDA_VISIBLE_DEVICES=0 sh run.sh
 ```
 
 ## Acknowledgements
