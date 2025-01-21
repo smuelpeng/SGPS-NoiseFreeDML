@@ -30,9 +30,9 @@ CUDA_VISIBLE_DEVICES=0 sh run.sh
 ```
 
 ## Acknowledgements
-- We would like to thank [@Jiaheng Liu](https://liujiaheng.github.io/) for helpful discussion.
+<!-- - We would like to thank [@Jiaheng Liu](https://liujiaheng.github.io/) for helpful discussion. -->
 - Our PCS module is modified from [PRISM](https://github.com/alibaba-edu/Ranking-based-Instance-Selection) 
-- FeatureServer is modified from [HFSoftmax](https://github.com/yl-1993/hfsoftmax)
+- FeatureServer is inspired from [HFSoftmax](https://github.com/yl-1993/hfsoftmax)
 
 ## Citation
 
